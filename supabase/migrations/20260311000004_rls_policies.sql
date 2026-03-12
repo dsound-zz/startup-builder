@@ -55,15 +55,15 @@ create policy "Users can update ideas in their projects"
     )
   );
 
-create policy "Users can update ideas in their projects"
-  on public.ideas for update
-  using (
-    exists (
-      select 1 from public.projects
-      where projects.id = ideas.project_id
-      and projects.user_id = auth.uid()
-    )
-  );
+-- create policy "Users can update ideas in their projects"
+--   on public.ideas for update
+--   using (
+--     exists (
+--       select 1 from public.projects
+--       where projects.id = ideas.project_id
+--       and projects.user_id = auth.uid()
+--     )
+--   );
 
 create policy "Users can delete ideas in their projects"
   on public.ideas for delete
