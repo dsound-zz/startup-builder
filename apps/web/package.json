@@ -33,9 +33,10 @@
     "recharts": "^3.8.0",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",
+    "@repo/ui": "workspace:*",
     "zod": "^4.3.6"
   },
-  "devDependencies": {
+  "dev极ependencies": {
     "@repo/typescript-config": "workspace:*",
     "@types/node": "^22.15.3",
     "@types/react": "19.2.2",

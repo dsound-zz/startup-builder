@@ -34,26 +34,34 @@ export function useIdeas(projectId?: string) {
 
   const generateIdeas = useMutation({
     mutationFn: async (data: { project_id: string; context: string }) => {
-      // This will be replaced with actual Edge Function call
-      const mockIdeas = [
-        {
-          id: '1',
-          project_id: data.project_id,
-          title: 'AI-Powered Market Research Platform',
-          problem: 'Startups struggle with comprehensive market research and competitor analysis',
-          solution: 'AI-driven platform that automatically analyzes markets, competitors, and trends',
-          target_audience: 'Entrepreneurs, startup founders, market researchers',
-          unique_value_proposition: 'Real-time market intelligence with predictive analytics',
-          market_size: '$15B+ market research industry',
-          revenue_streams: ['Subscription SaaS with enterprise pricing'],
-          status: 'draft',
-          score: null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-      ]
+      const supabase = createClient()
       
-      return mockIdeas
+      const { data: ideasData, error } = await supabase.functions.invoke('generate-ideas', {
+        body: { project_id: data.project_id, context: data.context }
+      })
+      
+      if (error) {
+        throw new Error(`Failed to generate ideas: ${error.message}`)
+      }
+      
+      // Transform the AI-generated ideas to match our database schema
+      const generatedIdeas = ideasData.ideas.map((idea: any, index: number) => ({
+        id: `generated-${Date.now()}-${index}`,
+        project_id: data.project_id,
+        title: idea.title,
+        problem: idea.problem,
+        solution: idea.solution,
+        target_audience: idea.target_audience,
+        unique_value_proposition: idea.unique_value_proposition,
+        market_size: idea.market_size,
+        revenue_streams: [idea.revenue_model],
+        status: 'draft',
+        score: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }))
+      
+      return generatedIdeas
     },
     onSuccess: (newIdeas) => {
       queryClient.setQueryData(['ideas', newIdeas[0]?.project_id], 
@@ -64,18 +72,32 @@ export function useIdeas(projectId?: string) {
 
   const validateIdea = useMutation({
     mutationFn: async (ideaId: string) => {
-      // This will be replaced with actual Edge Function call
-      const validationResult = {
-        score: Math.floor(Math.random() * 40) + 60,
-        strengths: ['Strong market opportunity', 'Clear target audience'],
-        weaknesses: ['High competition', 'Complex implementation'],
-        recommendations: ['Focus on niche market first']
+      const supabase = createClient()
+      
+      const { data: idea } = await supabase
+        .from('ideas')
+        .select('*')
+        .eq('id', ideaId)
+        .single()
+      
+      if (!idea) {
+        throw new Error('Idea not found')
       }
       
-      const { data, error } = await supabase
+      // Call the validate-idea Edge Function
+      const { data: validationData, error: validationError } = await supabase.functions.invoke('validate-idea', {
+        body: { idea_id: ideaId, idea_data: idea }
+      })
+      
+      if (validationError) {
+        throw new Error(`Failed to validate idea: ${validationError.message}`)
+      }
+      
+      // Update the idea with validation results
+      const { data: updatedIdea, error: updateError } = await supabase
         .from('ideas')
         .update({ 
-          score: validationResult.score,
+          score: validationData.score,
           status: 'validated',
           updated_at: new Date().toISOString()
         })
@@ -83,8 +105,8 @@ export function useIdeas(projectId?: string) {
         .select()
         .single()
       
-      if (error) throw error
-      return { ...data, validation: validationResult }
+      if (updateError) throw updateError
+      return { ...updatedIdea, validation: validationData }
     },
     onSuccess: (updatedIdea) => {
       queryClient.setQueryData(['ideas', updatedIdea.project_id], 
@@ -95,39 +117,24 @@ export function useIdeas(projectId?: string) {
     }
   })
 
-  const updateIdea = useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<Idea> & { id: string }) => {
+  const createIdea = useMutation({
+    mutationFn: async (idea: Omit<Idea, 'id' | 'created_at' | 'updated_at'>) => {
       const { data, error } = await supabase
         .from('ideas')
-        .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq('id', id)
+        .insert([{
+          ...idea,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }])
         .select()
         .single()
       
       if (error) throw error
-      return data as Idea
+      return data
     },
-    onSuccess: (updatedIdea) => {
-      queryClient.setQueryData(['ideas', updatedIdea.project_id], 
-        (old: Idea[] = []) => old.map(idea => 
-          idea.id === updatedIdea.id ? updatedIdea : idea
-        )
-      )
-    }
-  })
-
-  const deleteIdea = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('ideas')
-        .delete()
-        .eq('id', id)
-      
-      if (error) throw error
-    },
-    onSuccess: (_, id) => {
-      queryClient.setQueryData(['ideas'], 
-        (old: Idea[] = []) => old.filter(idea => idea.id !== id)
+    onSuccess: (newIdea) => {
+      queryClient.setQueryData(['ideas', newIdea.project_id], 
+        (old: Idea[] = []) => [newIdea, ...old]
       )
     }
   })
@@ -138,7 +145,6 @@ export function useIdeas(projectId?: string) {
     error,
     generateIdeas,
     validateIdea,
-    updateIdea,
-    deleteIdea
+    createIdea
   }
 }

@@ -54,55 +54,38 @@ export function useTechStack(projectId?: string, ideaId?: string) {
 
   const recommendTechStack = useMutation({
     mutationFn: async (data: { project_id: string; idea_id?: string; idea_details?: any }) => {
-      // This will be replaced with actual Edge Function call
-      const mockRecommendation = {
-        project_id: data.project_id,
-        idea_id: data.idea_id,
-        frontend_framework: {
-          recommendation: "Next.js",
-          confidence: 85,
-          reasoning: "Perfect for startup MVPs with built-in SSR, API routes, and excellent developer experience",
-          alternatives: ["React + Vite", "SvelteKit", "Nuxt.js"]
-        },
-        backend_framework: {
-          recommendation: "Node.js + Express",
-          confidence: 78,
-          reasoning: "Fast development, large ecosystem, perfect for API-first startups",
-          alternatives: ["Python + FastAPI", "Go + Gin", "Ruby on Rails"]
-        },
-        database: {
-          recommendation: "PostgreSQL",
-          confidence: 92,
-          reasoning: "Reliable, scalable, perfect for structured startup data with Supabase integration",
-          alternatives: ["MongoDB", "Supabase", "PlanetScale"]
-        },
-        infrastructure: {
-          recommendation: "Vercel + Supabase",
-          confidence: 88,
-          reasoning: "Zero-config deployment, global CDN, perfect for startup scale",
-          alternatives: ["Netlify + Supabase", "AWS Amplify", "Railway"]
-        },
-        tools: {
-          recommendation: ["Tailwind CSS", "TypeScript", "Prisma", "Stripe"],
-          confidence: 82,
-          reasoning: "Modern development stack with type safety, styling utilities, and payment integration"
-        },
-        confidence_score: 85,
-        complexity_level: "intermediate",
-        estimated_cost: "$50-200/month (scales with usage)",
-        timeline_estimate: "2-4 weeks for MVP",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+      // Call the recommend-tech-stack Edge Function
+      const { data: techStackData, error: techError } = await supabase.functions.invoke('recommend-tech-stack', {
+        body: { project_id: data.project_id, idea_id: data.idea_id, idea_details: data.idea_details }
+      })
+      
+      if (techError) {
+        throw new Error(`Failed to recommend tech stack: ${techError.message}`)
       }
       
-      const { data: techStack, error } = await supabase
+      // Save the tech stack to the database
+      const { data: savedStack, error: saveError } = await supabase
         .from('tech_stacks')
-        .insert(mockRecommendation)
+        .insert({
+          project_id: data.project_id,
+          idea_id: data.idea_id,
+          frontend_framework: techStackData.frontend_framework,
+          backend_framework: techStackData.backend_framework,
+          database: techStackData.database,
+          infrastructure: techStackData.infrastructure,
+          tools: techStackData.tools,
+          confidence_score: techStackData.confidence_score,
+          complexity_level: techStackData.complexity_level,
+          estimated_cost: techStackData.estimated_cost,
+          timeline_estimate: techStackData.timeline_estimate,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
         .select()
         .single()
       
-      if (error) throw error
-      return techStack as TechStack
+      if (saveError) throw saveError
+      return savedStack as TechStack
     },
     onSuccess: (newTechStack) => {
       queryClient.setQueryData(['tech-stacks', newTechStack.project_id, newTechStack.idea_id], 

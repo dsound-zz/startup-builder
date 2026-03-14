@@ -7,67 +7,32 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { EmptyState } from '@/components/shared/empty-state'
+import { useIdeas } from '@/lib/hooks/use-ideas'
+import { useProjects } from '@/lib/hooks/use-projects'
 import { Lightbulb, Sparkles, Target, TrendingUp, Zap } from 'lucide-react'
 
 export default function IdeasPage() {
    const router = useRouter()
+   const { projects, isLoading: projectsLoading } = useProjects()
+   const { generateIdeas } = useIdeas()
    const [isGenerating, setIsGenerating] = useState(false)
    const [generatedIdeas, setGeneratedIdeas] = useState<any[]>([])
    const [context, setContext] = useState('')
+   const [selectedProjectId, setSelectedProjectId] = useState('')
 
    const handleGenerateIdeas = async () => {
-      if (!context.trim()) return
+      if (!context.trim() || !selectedProjectId) return
 
       setIsGenerating(true)
+      setGeneratedIdeas([])
 
       try {
-         // Mock API call - will be replaced with actual Edge Function
-         const mockIdeas = [
-            {
-               id: '1',
-               title: 'AI-Powered Market Research Platform',
-               problem: 'Startups struggle with comprehensive market research and competitor analysis',
-               solution: 'AI-driven platform that automatically analyzes markets, competitors, and trends',
-               target_audience: 'Entrepreneurs, startup founders, market researchers',
-               unique_value_proposition: 'Real-time market intelligence with predictive analytics',
-               market_size: '$15B+ market research industry',
-               revenue_model: 'Subscription SaaS with enterprise pricing',
-               status: 'draft',
-               score: null
-            },
-            {
-               id: '2',
-               title: 'Automated Customer Validation Tool',
-               problem: 'Founders waste time manually validating startup ideas with potential customers',
-               solution: 'Platform that automates customer interviews and provides validation metrics',
-               target_audience: 'Early-stage startups, product managers',
-               unique_value_proposition: 'AI-powered customer discovery with automated insights',
-               market_size: 'Growing validation-as-a-service market',
-               revenue_model: 'Pay-per-validation and monthly subscriptions',
-               status: 'draft',
-               score: null
-            },
-            {
-               id: '3',
-               title: 'Startup Funding Matchmaker',
-               problem: 'Startups struggle to find the right investors for their specific industry and stage',
-               solution: 'AI-powered platform that matches startups with ideal investors',
-               target_audience: 'Seed-stage startups, angel investors, VCs',
-               unique_value_proposition: 'Intelligent matching based on industry, stage, and founder background',
-               market_size: 'Global venture capital market',
-               revenue_model: 'Success-based fees and premium matching services',
-               status: 'draft',
-               score: null
-            }
-         ]
+         const newIdeas = await generateIdeas.mutateAsync({
+            project_id: selectedProjectId,
+            context: context
+         })
 
-         // Simulate streaming
-         const newIdeas: any[] = []
-         for (const idea of mockIdeas) {
-            await new Promise(resolve => setTimeout(resolve, 1000))
-            newIdeas.push(idea)
-            setGeneratedIdeas([...newIdeas])
-         }
+         setGeneratedIdeas(newIdeas)
       } catch (error) {
          console.error('Failed to generate ideas:', error)
       } finally {
@@ -98,6 +63,25 @@ export default function IdeasPage() {
                </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+               {projects && projects.length > 0 && (
+                  <div className="space-y-2">
+                     <Label htmlFor="project">Select Project</Label>
+                     <select
+                        id="project"
+                        value={selectedProjectId}
+                        onChange={(e) => setSelectedProjectId(e.target.value)}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        required
+                     >
+                        <option value="">Select a project...</option>
+                        {projects.map((project) => (
+                           <option key={project.id} value={project.id}>
+                              {project.name}
+                           </option>
+                        ))}
+                     </select>
+                  </div>
+               )}
                <div className="space-y-2">
                   <Label htmlFor="context">Project Context</Label>
                   <textarea
@@ -106,12 +90,12 @@ export default function IdeasPage() {
                      value={context}
                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setContext(e.target.value)}
                      rows={3}
-                     className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                     className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allow ed:opacity-50"
                   />
                </div>
                <Button
                   onClick={handleGenerateIdeas}
-                  disabled={isGenerating || !context.trim()}
+                  disabled={isGenerating || !context.trim() || !selectedProjectId}
                   className="w-full"
                >
                   {isGenerating ? (
@@ -165,7 +149,7 @@ export default function IdeasPage() {
             <EmptyState
                icon={Lightbulb}
                title="No ideas generated yet"
-               description="Describe your project context above to generate innovative startup ideas"
+               description="Select a project and describe your context to generate innovative startup ideas"
                action={{
                   label: 'View Projects',
                   onClick: () => router.push('/projects'),

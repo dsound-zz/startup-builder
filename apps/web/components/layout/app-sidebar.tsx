@@ -12,7 +12,7 @@ import {
    SidebarMenuButton,
    SidebarMenuItem
 } from '@/components/ui/sidebar'
-import { LayoutDashboard, FolderKanban, Settings, Lightbulb } from 'lucide-react'
+import { LayoutDashboard, FolderKanban, Settings, Lightbulb, FileText, Code, Users } from 'lucide-react'
 
 const menuItems = [
    {
@@ -29,6 +29,26 @@ const menuItems = [
       title: 'Idea Generation',
       url: '/ideas',
       icon: Lightbulb,
+   },
+   {
+      title: 'Market Analysis',
+      url: '/market-analysis',
+      icon: FileText,
+   },
+   {
+      title: 'Business Plan',
+      url: '/business-plan',
+      icon: FileText,
+   },
+   {
+      title: 'Tech Stack',
+      url: '/tech-stack',
+      icon: Code,
+   },
+   {
+      title: 'Investor Matches',
+      url: '/investor-matches',
+      icon: Users,
    },
    {
       title: 'Settings',

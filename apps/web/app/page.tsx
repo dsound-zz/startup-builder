@@ -1,102 +1,110 @@
-import Image, { type ImageProps } from "next/image";
-import { Button } from "@repo/ui/button";
-import styles from "./page.module.css";
+'use client'
 
-type Props = Omit<ImageProps, "src"> & {
-  srcLight: string;
-  srcDark: string;
-};
+import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Sparkles, Lightbulb, TrendingUp, Zap, Target } from 'lucide-react'
 
-const ThemeImage = (props: Props) => {
-  const { srcLight, srcDark, ...rest } = props;
+export default function HomePage() {
+  const router = useRouter()
+
+  const features = [
+    {
+      title: 'AI-Generated Startup Ideas',
+      description: 'Generate innovative startup ideas based on emerging trends and market gaps',
+      icon: Sparkles,
+    },
+    {
+      title: 'Market Analysis',
+      description: 'Real-time market sizing, competition analysis, and growth potential',
+      icon: TrendingUp,
+    },
+    {
+      title: 'Business Plan Generator',
+      description: 'Create comprehensive pitch decks, financial projections, and MVP roadmaps',
+      icon: Lightbulb,
+    },
+    {
+      title: 'Tech Stack Recommender',
+      description: 'Get optimal technology recommendations based on your startup idea',
+      icon: Zap,
+    },
+    {
+      title: 'Investor Matching',
+      description: 'Find VCs and angels who fund similar companies in your industry',
+      icon: Target,
+    },
+  ]
 
   return (
-    <>
-      <Image {...rest} src={srcLight} className="imgLight" />
-      <Image {...rest} src={srcDark} className="imgDark" />
-    </>
-  );
-};
-
-export default function Home() {
-  return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <ThemeImage
-          className={styles.logo}
-          srcLight="turborepo-dark.svg"
-          srcDark="turborepo-light.svg"
-          alt="Turborepo logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>apps/web/app/page.tsx</code>
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new/clone?demo-description=Learn+to+implement+a+monorepo+with+a+two+Next.js+sites+that+has+installed+three+local+packages.&demo-image=%2F%2Fimages.ctfassets.net%2Fe5382hct74si%2F4K8ZISWAzJ8X1504ca0zmC%2F0b21a1c6246add355e55816278ef54bc%2FBasic.png&demo-title=Monorepo+with+Turborepo&demo-url=https%3A%2F%2Fexamples-basic-web.vercel.sh%2F&from=templates&project-name=Monorepo+with+Turborepo&repository-name=monorepo-turborepo&repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fturborepo%2Ftree%2Fmain%2Fexamples%2Fbasic&root-directory=apps%2Fdocs&skippable-integrations=1&teamSlug=vercel&utm_source=create-turbo"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://turborepo.dev/docs?utm_source"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="container mx-auto px-4 py-16">
+        {/* Hero Section */}
+        <div className="text-center mb-16">
+          <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+            Startup Builder
+          </h1>
+          <p className="text-xl md:text-2xl text-gray-600 mb-8 max-w-3xl mx-auto">
+            Your AI-powered startup validation platform. Turn ideas into validated businesses.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button
+              size="lg"
+              onClick={() => router.push('/signin')}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Get Started
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={() => router.push('/signin')}
+            >
+              Sign In
+            </Button>
+          </div>
         </div>
-        <Button appName="web" className={styles.secondary}>
-          Open alert
-        </Button>
-      </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://vercel.com/templates?search=turborepo&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://turborepo.dev?utm_source=create-turbo"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to turborepo.dev →
-        </a>
-      </footer>
+
+        {/* Features Grid */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+          {features.map((feature) => {
+            const Icon = feature.icon
+            return (
+              <Card key={feature.title} className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <Icon className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <CardTitle className="text-lg">{feature.title}</CardTitle>
+                  </div>
+                  <CardDescription>{feature.description}</CardDescription>
+                </CardHeader>
+              </Card>
+            )
+          })}
+        </div>
+
+        {/* CTA Section */}
+        <Card className="max-w-2xl mx-auto text-center">
+          <CardHeader>
+            <CardTitle className="text-2xl mb-4">Ready to Build Your Startup?</CardTitle>
+            <CardDescription className="text-lg">
+              Join thousands of entrepreneurs who use Startup Builder to validate their ideas
+              and build successful businesses.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              size="lg"
+              onClick={() => router.push('/signin')}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Start Building Free
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     </div>
-  );
+  )
 }
