@@ -1,4 +1,7 @@
 // Simple Edge Function template
+
+declare const Deno: any;
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -13,40 +16,55 @@ export default async function handler(req: Request): Promise<Response> {
   try {
     const { project_id, context } = await req.json();
     
-    // For now, return mock data - will be replaced with actual API call
-    const mockIdeas = [
-      {
-        title: "AI-Powered Market Research Platform",
-        problem: "Startups struggle with comprehensive market research and competitor analysis",
-        solution: "AI-driven platform that automatically analyzes markets, competitors, and trends",
-        target_audience: "Entrepreneurs, startup founders, market researchers",
-        unique_value_proposition: "Real-time market intelligence with predictive analytics",
-        market_size: "$15B+ market research industry",
-        revenue_model: "Subscription SaaS with enterprise pricing"
-      },
-      {
-        title: "Automated Customer Validation Tool",
-        problem: "Founders waste time manually validating startup ideas with potential customers",
-        solution: "Platform that automates customer interviews and provides validation metrics",
-        target_audience: "Early-stage startups, product managers",
-        unique_value_proposition: "AI-powered customer discovery with automated insights",
-        market_size: "Growing validation-as-a-service market",
-        revenue_model: "Pay-per-validation and monthly subscriptions"
-      },
-      {
-        title: "Startup Funding Matchmaker",
-        problem: "Startups struggle to find the right investors for their specific industry and stage",
-               solution: "AI-powered platform that matches startups with ideal investors",
-        target_audience: "Seed-stage startups, angel investors, VCs",
-        unique_value_proposition: "Intelligent matching based on industry, stage, and founder background",
-        market_size: "Global venture capital market",
-        revenue_model: "Success-based fees and premium matching services"
-      }
-    ];
+    // Generate startup ideas using TogetherAI
+    const apiKey = Deno.env.get("TOGETHER_API_KEY");
+    if (!apiKey) {
+      throw new Error("TOGETHER_API_KEY environment variable is not set");
+    }
 
-    // Return mock ideas
-    return new Response(
-      JSON.stringify({ ideas: mockIdeas }),
+    const prompt = `Generate 3 innovative startup ideas based on the following context:
+${context}
+
+Please provide the ideas in JSON format with the following structure for each idea:
+{
+  "title": "string",
+  "problem": "string",
+  "solution": "string",
+  "target_audience": "string",
+  "unique_value_proposition": "string",
+  "market_size": "string",
+  "revenue_model": "string"
+}
+
+Return only valid JSON without any additional text.`;
+
+    try {
+      const response = await fetch("https://api.together.xyz/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "meta-llama/Llama-3-70b-chat-hf",
+          messages: [{ role: "user", content: prompt }],
+          max_tokens: 2000,
+          temperature: 0.8,
+          response_format: { type: "json_object" }
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`TogetherAI API error: ${response.status} - ${errorData}`);
+      }
+
+      const data = await response.json();
+      const ideasContent = data.choices[0].message.content;
+      const ideasData = JSON.parse(ideasContent);
+
+      return new Response(
+        JSON.stringify({ ideas: ideasData.ideas || [] }),
       { 
         status: 200, 
         headers: { 
@@ -55,6 +73,27 @@ export default async function handler(req: Request): Promise<Response> {
         } 
       }
     );
+
+    } catch (error) {
+      console.error("TogetherAI API error:", error);
+      // Fallback to mock data if AI call fails
+      const mockIdeas = [
+        {
+          title: "AI-Powered Market Research Platform",
+          problem: "Startups struggle with comprehensive market research and competitor analysis",
+          solution: "AI-driven platform that automatically analyzes markets, competitors, and trends",
+          target_audience: "Entrepreneurs, startup founders, market researchers",
+          unique_value_proposition: "Real-time market intelligence with predictive analytics",
+          market_size: "$15B+ market research industry",
+          revenue_model: "Subscription SaaS with enterprise pricing"
+        }
+      ];
+      
+      return new Response(
+        JSON.stringify({ ideas: mockIdeas }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
   } catch (error) {
     return new Response(
