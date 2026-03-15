@@ -60,7 +60,11 @@ export default function ProjectsPage() {
          ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                {projects.map((project) => (
-                  <Card key={project.id} className="hover:shadow-md transition-shadow">
+                  <Card
+                     key={project.id}
+                     className="hover:shadow-md transition-shadow cursor-pointer"
+                     onClick={() => router.push('/ideas')}
+                  >
                      <CardHeader>
                         <div className="flex items-start justify-between">
                            <div className="flex-1">
@@ -72,7 +76,10 @@ export default function ProjectsPage() {
                            <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleDelete(project.id)}
+                              onClick={(e) => {
+                                 e.stopPropagation()
+                                 handleDelete(project.id)
+                              }}
                               className="text-destructive hover:text-destructive"
                            >
                               <Trash2 className="h-4 w-4" />

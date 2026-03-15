@@ -44,27 +44,34 @@ export function useIdeas(projectId?: string) {
         throw new Error(`Failed to generate ideas: ${error.message}`)
       }
       
-      // Transform the AI-generated ideas to match our database schema
-      const generatedIdeas = ideasData.ideas.map((idea: any, index: number) => ({
-        id: `generated-${Date.now()}-${index}`,
+      // Transform AI-generated ideas to database schema and insert them
+      const ideasToInsert = ideasData.ideas.map((idea: any) => ({
         project_id: data.project_id,
         title: idea.title,
         problem: idea.problem,
         solution: idea.solution,
         target_audience: idea.target_audience,
         unique_value_proposition: idea.unique_value_proposition,
-        market_size: idea.market_size,
+        market_size: idea.market_size || null,
         revenue_streams: [idea.revenue_model],
-        status: 'draft',
+        status: 'draft' as const,
         score: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
       }))
       
-      return generatedIdeas
+      // Insert all generated ideas into the database
+      const { data: insertedIdeas, error: insertError } = await supabase
+        .from('ideas')
+        .insert(ideasToInsert)
+        .select()
+      
+      if (insertError) {
+        throw new Error(`Failed to save ideas: ${insertError.message}`)
+      }
+      
+      return insertedIdeas as Idea[]
     },
     onSuccess: (newIdeas) => {
-      queryClient.setQueryData(['ideas', newIdeas[0]?.project_id], 
+      queryClient.setQueryData(['ideas', newIdeas[0]?.project_id],
         (old: Idea[] = []) => [...newIdeas, ...old]
       )
     }
@@ -96,8 +103,8 @@ export function useIdeas(projectId?: string) {
       // Update the idea with validation results
       const { data: updatedIdea, error: updateError } = await supabase
         .from('ideas')
-        .update({ 
-          score: validationData.score,
+        .update({
+          score: Math.round(Number(validationData.score)),
           status: 'validated',
           updated_at: new Date().toISOString()
         })

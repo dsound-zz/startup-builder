@@ -63,6 +63,13 @@ export function useTechStack(projectId?: string, ideaId?: string) {
         throw new Error(`Failed to recommend tech stack: ${techError.message}`)
       }
       
+      // Normalize complexity_level to match DB constraint
+      const validComplexityLevels = ['beginner', 'intermediate', 'advanced', 'expert'] as const
+      const rawComplexity = String(techStackData.complexity_level || 'intermediate').toLowerCase()
+      const complexityLevel = validComplexityLevels.includes(rawComplexity as any)
+        ? rawComplexity
+        : 'intermediate'
+      
       // Save the tech stack to the database
       const { data: savedStack, error: saveError } = await supabase
         .from('tech_stacks')
@@ -74,8 +81,8 @@ export function useTechStack(projectId?: string, ideaId?: string) {
           database: techStackData.database,
           infrastructure: techStackData.infrastructure,
           tools: techStackData.tools,
-          confidence_score: techStackData.confidence_score,
-          complexity_level: techStackData.complexity_level,
+          confidence_score: Math.round(Number(techStackData.confidence_score)),
+          complexity_level: complexityLevel,
           estimated_cost: techStackData.estimated_cost,
           timeline_estimate: techStackData.timeline_estimate,
           created_at: new Date().toISOString(),

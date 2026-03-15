@@ -1,8 +1,12 @@
+'use client'
+
+import { useRouter } from 'next/navigation'
 import { PageContainer } from '@/components/layout/page-container'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { FolderKanban, Lightbulb, TrendingUp, Zap } from 'lucide-react'
 
 export default function DashboardPage() {
+   const router = useRouter()
    const features = [
       {
          title: 'Projects',
@@ -39,7 +43,11 @@ export default function DashboardPage() {
             {features.map((feature) => {
                const Icon = feature.icon
                return (
-                  <Card key={feature.title} className="cursor-pointer hover:bg-muted/50 transition-colors">
+                  <Card
+                     key={feature.title}
+                     className="cursor-pointer hover:bg-muted/50 transition-colors"
+                     onClick={() => router.push(feature.href)}
+                  >
                      <CardHeader>
                         <div className="flex items-center justify-between">
                            <CardTitle className="text-lg">{feature.title}</CardTitle>

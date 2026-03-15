@@ -43,20 +43,28 @@ export function useInvestorMatches(ideaId?: string) {
         throw new Error(`Failed to generate investor matches: ${matchError.message}`)
       }
       
+      // The edge function returns { success, data: {...} }
+      const investorData = matchData.data || matchData
+      
+      // Normalize enum values to match DB constraints
+      const validInterestLevels = ['low', 'medium', 'high', 'very_high'] as const
+      const rawInterest = String(investorData.investor_interest_level || 'medium').toLowerCase().replace(/\s+/g, '_')
+      const interestLevel = validInterestLevels.includes(rawInterest as any) ? rawInterest : 'medium'
+      
       // Save the investor matches to the database
       const { data: savedMatch, error: saveError } = await supabase
         .from('investor_matches')
         .insert({
           idea_id: data.idea_id,
           project_id: data.idea_data.project_id,
-          match_score: matchData.match_score,
-          matching_reasons: matchData.matching_reasons,
-          potential_valuation_range: matchData.potential_valuation_range,
-          funding_stage: matchData.funding_stage,
-          investor_profiles: matchData.investor_profiles,
-          investor_interest_level: matchData.investor_interest_level,
-          competitive_advantage: matchData.competitive_advantage,
-          market_differentiators: matchData.market_differentiators,
+          match_score: Math.round(Number(investorData.match_score)),
+          matching_reasons: investorData.matching_reasons,
+          potential_valuation_range: investorData.potential_valuation_range,
+          funding_stage: investorData.funding_stage,
+          investor_profiles: investorData.investor_profiles,
+          investor_interest_level: interestLevel,
+          competitive_advantage: investorData.competitive_advantage,
+          market_differentiators: investorData.market_differentiators,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })

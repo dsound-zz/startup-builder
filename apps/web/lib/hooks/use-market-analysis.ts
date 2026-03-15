@@ -45,6 +45,11 @@ export function useMarketAnalysis(ideaId?: string) {
         throw new Error(`Failed to analyze market: ${analysisError.message}`)
       }
       
+      // Normalize competition_level to match DB constraint
+      const validCompLevels = ['low', 'medium', 'high', 'very_high'] as const
+      const rawCompLevel = String(analysisData.competition_level || 'medium').toLowerCase().replace(/\s+/g, '_')
+      const competitionLevel = validCompLevels.includes(rawCompLevel as any) ? rawCompLevel : 'medium'
+      
       // Save the market analysis to the database
       const { data: savedAnalysis, error: saveError } = await supabase
         .from('market_analyses')
@@ -55,14 +60,14 @@ export function useMarketAnalysis(ideaId?: string) {
           serviceable_addressable_market: analysisData.serviceable_addressable_market,
           serviceable_obtainable_market: analysisData.serviceable_obtainable_market,
           competitors: analysisData.competitors || [],
-          competition_level: analysisData.competition_level,
+          competition_level: competitionLevel,
           competitive_advantages: analysisData.competitive_advantages || [],
           market_growth_rate: analysisData.market_growth_rate,
           market_trends: analysisData.market_trends || [],
           emerging_opportunities: analysisData.emerging_opportunities || [],
           market_risks: analysisData.market_risks || [],
           regulatory_considerations: analysisData.regulatory_considerations,
-          market_score: analysisData.market_score,
+          market_score: Math.round(Number(analysisData.market_score)),
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })

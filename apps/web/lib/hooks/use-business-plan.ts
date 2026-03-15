@@ -43,25 +43,35 @@ export function useBusinessPlan(ideaId?: string) {
         throw new Error(`Failed to generate business plan: ${planError.message}`)
       }
       
+      // The edge function returns { success, data: {...} }
+      const planData = businessPlanData.data || businessPlanData
+      
+      // Normalize enum values to match DB constraints
+      const validLevels = ['low', 'medium', 'high', 'very_high'] as const
+      const rawRisk = String(planData.risk_level || 'medium').toLowerCase().replace(/\s+/g, '_')
+      const rawGrowth = String(planData.growth_potential || 'medium').toLowerCase().replace(/\s+/g, '_')
+      const riskLevel = validLevels.includes(rawRisk as any) ? rawRisk : 'medium'
+      const growthPotential = validLevels.includes(rawGrowth as any) ? rawGrowth : 'medium'
+      
       // Save the business plan to the database
       const { data: savedPlan, error: saveError } = await supabase
         .from('business_plans')
         .insert({
           idea_id: data.idea_id,
           project_id: data.idea_data.project_id,
-          executive_summary: businessPlanData.executive_summary,
-          company_description: businessPlanData.company_description,
-          market_analysis: businessPlanData.market_analysis,
-          organization_structure: businessPlanData.organization_structure,
-          product_service_description: businessPlanData.product_service_description,
-          marketing_strategy: businessPlanData.marketing_strategy,
-          sales_strategy: businessPlanData.sales_strategy,
-          financial_projections: businessPlanData.financial_projections,
-          funding_requirements: businessPlanData.funding_requirements,
-          exit_strategy: businessPlanData.exit_strategy,
-          business_score: businessPlanData.business_score,
-          risk_level: businessPlanData.risk_level,
-          growth_potential: businessPlanData.growth_potential,
+          executive_summary: planData.executive_summary,
+          company_description: planData.company_description,
+          market_analysis: planData.market_analysis,
+          organization_structure: planData.organization_structure,
+          product_service_description: planData.product_service_description,
+          marketing_strategy: planData.marketing_strategy,
+          sales_strategy: planData.sales_strategy,
+          financial_projections: planData.financial_projections,
+          funding_requirements: planData.funding_requirements,
+          exit_strategy: planData.exit_strategy,
+          business_score: Math.round(Number(planData.business_score)),
+          risk_level: riskLevel,
+          growth_potential: growthPotential,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
