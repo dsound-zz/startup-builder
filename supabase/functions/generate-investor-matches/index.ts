@@ -1,6 +1,13 @@
 // generate-investor-matches/index.ts
 // Edge Function to generate investor matching analysis using TogetherAI
 
+declare const Deno: any;
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
 // Types
 interface InvestorProfile {
   name: string;
@@ -38,14 +45,19 @@ interface GenerationRequest {
 }
 
 // Main handler
-export default async function handler(req: Request): Promise<Response> {
+Deno.serve(async (req: Request) => {
+  // Handle CORS
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
   try {
     const { idea_data } = await req.json();
 
     if (!idea_data) {
       return new Response(
         JSON.stringify({ error: 'idea_data is required' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -133,27 +145,21 @@ Please provide a detailed investor matching analysis in JSON format with this st
     };
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: true,
         data: mockMatchData
       }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
     console.error('Error generating investor matches:', error);
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: 'Failed to generate investor matches',
         details: error instanceof Error ? error.message : 'Unknown error'
       }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
-}
-
-// Deno configuration
-export const config = {
-  name: 'generate-investor-matches',
-  entrypoint: 'index.ts',
-};
+})

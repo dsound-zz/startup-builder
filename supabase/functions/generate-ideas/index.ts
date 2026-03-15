@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-export default async function handler(req: Request): Promise<Response> {
+Deno.serve(async (req: Request) => {
   // Handle CORS
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -25,20 +25,29 @@ export default async function handler(req: Request): Promise<Response> {
     const prompt = `Generate 3 innovative startup ideas based on the following context:
 ${context}
 
-Please provide the ideas in JSON format with the following structure for each idea:
+Return a JSON object with the following structure:
 {
-  "title": "string",
-  "problem": "string",
-  "solution": "string",
-  "target_audience": "string",
-  "unique_value_proposition": "string",
-  "market_size": "string",
-  "revenue_model": "string"
+  "ideas": [
+    {
+      "title": "string",
+      "problem": "string",
+      "solution": "string",
+      "target_audience": "string",
+      "unique_value_proposition": "string",
+      "market_size": "string",
+      "revenue_model": "string"
+    }
+  ]
 }
 
-Return only valid JSON without any additional text.`;
+Return ONLY the JSON object, no markdown, no code fences, no additional text.`;
 
     try {
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
+      
+      // Use OpenAI-compatible endpoint for TogetherAI
       const response = await fetch("https://api.together.xyz/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -46,13 +55,18 @@ Return only valid JSON without any additional text.`;
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          model: "meta-llama/Llama-3-70b-chat-hf",
+          model: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",  // Using faster, more reliable model
           messages: [{ role: "user", content: prompt }],
           max_tokens: 2000,
-          temperature: 0.8,
-          response_format: { type: "json_object" }
-        })
+          temperature: 0.7,
+          top_p: 0.7,
+          top_k: 50,
+          repetition_penalty: 1
+        }),
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorData = await response.text();
@@ -61,10 +75,22 @@ Return only valid JSON without any additional text.`;
 
       const data = await response.json();
       const ideasContent = data.choices[0].message.content;
-      const ideasData = JSON.parse(ideasContent);
+      
+      // Clean up AI response - strip markdown code fences if present
+      let cleanContent = ideasContent.trim();
+      if (cleanContent.startsWith("```")) {
+        cleanContent = cleanContent.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
+      }
+      
+      const ideasData = JSON.parse(cleanContent);
+      
+      // Handle both array format and {ideas: [...]} format
+      const ideas = Array.isArray(ideasData) ? ideasData : (ideasData.ideas || []);
+
+      console.log(`Successfully generated ${ideas.length} ideas from TogetherAI`);
 
       return new Response(
-        JSON.stringify({ ideas: ideasData.ideas || [] }),
+        JSON.stringify({ ideas }),
       { 
         status: 200, 
         headers: { 
@@ -101,4 +127,4 @@ Return only valid JSON without any additional text.`;
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
-}
+})

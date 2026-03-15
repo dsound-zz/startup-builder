@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-export default async function handler(req: Request): Promise<Response> {
+Deno.serve(async (req: Request) => {
   // Handle CORS
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -74,7 +74,7 @@ Focus on modern, startup-friendly technologies that are easy to scale.`;
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          model: "meta-llama/Llama-3-70b-chat-hf",
+          model: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
           messages: [{ role: "user", content: prompt }],
           max_tokens: 2500,
           temperature: 0.7,
@@ -147,4 +147,4 @@ Focus on modern, startup-friendly technologies that are easy to scale.`;
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
-}
+})

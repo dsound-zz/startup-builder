@@ -1,6 +1,12 @@
 // generate-business-plan/index.ts
 // Edge Function to generate a comprehensive business plan using TogetherAI
 
+declare const Deno: any;
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 // Types
 interface BusinessPlanData {
@@ -32,19 +38,18 @@ interface GenerationRequest {
 }
 
 // Configuration
-const TOGETHER_AI_API_KEY = Deno.env.get('TOGETHER_AI_API_KEY');
-const TOGETHER_AI_MODEL = 'meta-llama/Llama-3-70b-chat-hf';
-
-if (!TOGETHER_AI_API_KEY) {
-  throw new Error('TOGETHER_AI_API_KEY environment variable is not set');
-}
+const TOGETHER_AI_MODEL = 'meta-llama/Llama-3.3-70B-Instruct-Turbo';
 
 // Helper function to call TogetherAI
 async function callTogetherAI(prompt: string): Promise<string> {
+  const apiKey = Deno.env.get('TOGETHER_API_KEY');
+  if (!apiKey) {
+    throw new Error('TOGETHER_API_KEY environment variable is not set');
+  }
   const response = await fetch('https://api.together.xyz/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${TOGETHER_AI_API_KEY}`,
+      'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -104,14 +109,19 @@ function extractJson(text: string): BusinessPlanData {
 }
 
 // Main handler
-export default async function handler(req: Request): Promise<Response> {
+Deno.serve(async (req: Request) => {
+  // Handle CORS
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
   try {
     const { idea_data } = await req.json();
 
     if (!idea_data) {
       return new Response(
         JSON.stringify({ error: 'idea_data is required' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -146,27 +156,21 @@ Please provide a detailed business plan in JSON format with this structure:
     const businessPlanData = extractJson(businessPlanText);
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: true,
         data: businessPlanData
       }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
     console.error('Error generating business plan:', error);
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: 'Failed to generate business plan',
         details: error instanceof Error ? error.message : 'Unknown error'
       }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
-}
-
-// Deno configuration
-export const config = {
-  name: 'generate-business-plan',
-  entrypoint: 'index.ts',
-};
+})
