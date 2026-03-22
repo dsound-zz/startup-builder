@@ -1,8 +1,13 @@
-import { createBrowserClient } from '@supabase/ssr'
+import { createClient as createNeonClient, SupabaseAuthAdapter } from '@neondatabase/neon-js'
 
 export function createClient() {
-  return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  return createNeonClient({
+    auth: {
+      url: process.env.NEXT_PUBLIC_NEON_AUTH_URL!,
+      adapter: SupabaseAuthAdapter(),
+    },
+    dataApi: {
+      url: process.env.NEXT_PUBLIC_NEON_DATA_API_URL!,
+    },
+  })
 }

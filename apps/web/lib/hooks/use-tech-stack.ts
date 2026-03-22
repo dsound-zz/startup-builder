@@ -55,9 +55,21 @@ export function useTechStack(projectId?: string, ideaId?: string) {
   const recommendTechStack = useMutation({
     mutationFn: async (data: { project_id: string; idea_id?: string; idea_details?: any }) => {
       // Call the recommend-tech-stack Edge Function
-      const { data: techStackData, error: techError } = await supabase.functions.invoke('recommend-tech-stack', {
-        body: { project_id: data.project_id, idea_id: data.idea_id, idea_details: data.idea_details }
-      })
+      const response = await fetch('/api/recommend-tech-stack', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project_id: data.project_id, idea_id: data.idea_id, idea_details: data.idea_details })
+      });
+      
+      let techStackData, techError = null;
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        techError = new Error(`Failed to call recommend-tech-stack: ${errData.error || response.statusText}`);
+      } else {
+        const resJson = await response.json();
+        // Some endpoints return { data: ... }, others return { ... } directly
+        techStackData = resJson.data !== undefined ? resJson.data : resJson;
+      }
       
       if (techError) {
         throw new Error(`Failed to recommend tech stack: ${techError.message}`)

@@ -36,14 +36,19 @@ export function useMarketAnalysis(ideaId?: string) {
     mutationFn: async (data: { idea_id: string; idea_data: any }) => {
       const supabase = createClient()
       
-      // Call the analyze-market Edge Function
-      const { data: analysisData, error: analysisError } = await supabase.functions.invoke('analyze-market', {
-        body: { idea_id: data.idea_id, idea_data: data.idea_data }
+      // Call the analyze-market Next.js API route
+      const response = await fetch('/api/analyze-market', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idea_id: data.idea_id, idea_data: data.idea_data })
       })
       
-      if (analysisError) {
-        throw new Error(`Failed to analyze market: ${analysisError.message}`)
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(`Failed to analyze market: ${errorData.error || response.statusText}`)
       }
+      
+      const analysisData = await response.json()
       
       // Normalize competition_level to match DB constraint
       const validCompLevels = ['low', 'medium', 'high', 'very_high'] as const

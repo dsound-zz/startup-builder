@@ -35,9 +35,21 @@ export function useBusinessPlan(ideaId?: string) {
   const generateBusinessPlan = useMutation({
     mutationFn: async (data: { idea_id: string; idea_data: any }) => {
       // Call the generate-business-plan Edge Function
-      const { data: businessPlanData, error: planError } = await supabase.functions.invoke('generate-business-plan', {
-        body: { idea_id: data.idea_id, idea_data: data.idea_data }
-      })
+      const response = await fetch('/api/generate-business-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idea_id: data.idea_id, idea_data: data.idea_data })
+      });
+      
+      let businessPlanData, planError = null;
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        planError = new Error(`Failed to call generate-business-plan: ${errData.error || response.statusText}`);
+      } else {
+        const resJson = await response.json();
+        // Some endpoints return { data: ... }, others return { ... } directly
+        businessPlanData = resJson.data !== undefined ? resJson.data : resJson;
+      }
       
       if (planError) {
         throw new Error(`Failed to generate business plan: ${planError.message}`)

@@ -35,9 +35,21 @@ export function useInvestorMatches(ideaId?: string) {
   const generateInvestorMatches = useMutation({
     mutationFn: async (data: { idea_id: string; idea_data: any }) => {
       // Call the generate-investor-matches Edge Function
-      const { data: matchData, error: matchError } = await supabase.functions.invoke('generate-investor-matches', {
-        body: { idea_id: data.idea_id, idea_data: data.idea_data }
-      })
+      const response = await fetch('/api/generate-investor-matches', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idea_id: data.idea_id, idea_data: data.idea_data })
+      });
+      
+      let matchData, matchError = null;
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        matchError = new Error(`Failed to call generate-investor-matches: ${errData.error || response.statusText}`);
+      } else {
+        const resJson = await response.json();
+        // Some endpoints return { data: ... }, others return { ... } directly
+        matchData = resJson.data !== undefined ? resJson.data : resJson;
+      }
       
       if (matchError) {
         throw new Error(`Failed to generate investor matches: ${matchError.message}`)

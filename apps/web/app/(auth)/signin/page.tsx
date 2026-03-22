@@ -12,27 +12,27 @@ import { Separator } from '@/components/ui/separator'
 
 export default function SignInPage() {
    const [email, setEmail] = useState('')
+   const [password, setPassword] = useState('')
    const [loading, setLoading] = useState(false)
    const [message, setMessage] = useState('')
    const router = useRouter()
    const supabase = createClient()
 
-   const handleMagicLink = async (e: React.FormEvent) => {
+   const handleEmailSignIn = async (e: React.FormEvent) => {
       e.preventDefault()
       setLoading(true)
       setMessage('')
 
-      const { error } = await supabase.auth.signInWithOtp({
+      const { error } = await supabase.auth.signInWithPassword({
          email,
-         options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
-         },
+         password,
       })
 
       if (error) {
          setMessage(error.message)
       } else {
-         setMessage('Check your email for the magic link!')
+         router.push('/dashboard')
+         router.refresh()
       }
 
       setLoading(false)
@@ -58,7 +58,7 @@ export default function SignInPage() {
             <CardDescription>Sign in to your account to continue</CardDescription>
          </CardHeader>
          <CardContent className="space-y-4">
-            <form onSubmit={handleMagicLink} className="space-y-4">
+            <form onSubmit={handleEmailSignIn} className="space-y-4">
                <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
                   <Input
@@ -71,13 +71,25 @@ export default function SignInPage() {
                      disabled={loading}
                   />
                </div>
+               <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                     id="password"
+                     type="password"
+                     placeholder="••••••••"
+                     value={password}
+                     onChange={(e) => setPassword(e.target.value)}
+                     required
+                     disabled={loading}
+                  />
+               </div>
                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? 'Sending...' : 'Send Magic Link'}
+                  {loading ? 'Signing in...' : 'Sign In'}
                </Button>
             </form>
 
             {message && (
-               <p className={`text-sm text-center ${message.includes('Check') ? 'text-green-600' : 'text-red-600'}`}>
+               <p className="text-sm text-center text-red-600">
                   {message}
                </p>
             )}

@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator'
 
 export default function RegisterPage() {
    const [email, setEmail] = useState('')
+   const [password, setPassword] = useState('')
    const [fullName, setFullName] = useState('')
    const [loading, setLoading] = useState(false)
    const [message, setMessage] = useState('')
@@ -21,10 +22,10 @@ export default function RegisterPage() {
       setLoading(true)
       setMessage('')
 
-      const { error } = await supabase.auth.signInWithOtp({
+      const { error } = await supabase.auth.signUp({
          email,
+         password,
          options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
             data: {
                full_name: fullName,
             },
@@ -34,7 +35,7 @@ export default function RegisterPage() {
       if (error) {
          setMessage(error.message)
       } else {
-         setMessage('Check your email to complete registration!')
+         setMessage('Registration successful! You may now sign in.')
       }
 
       setLoading(false)
@@ -85,13 +86,25 @@ export default function RegisterPage() {
                      disabled={loading}
                   />
                </div>
+               <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                     id="password"
+                     type="password"
+                     placeholder="••••••••"
+                     value={password}
+                     onChange={(e) => setPassword(e.target.value)}
+                     required
+                     disabled={loading}
+                  />
+               </div>
                <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? 'Creating account...' : 'Create Account'}
                </Button>
             </form>
 
             {message && (
-               <p className={`text-sm text-center ${message.includes('Check') ? 'text-green-600' : 'text-red-600'}`}>
+               <p className={`text-sm text-center ${message.includes('successful') ? 'text-green-600' : 'text-red-600'}`}>
                   {message}
                </p>
             )}

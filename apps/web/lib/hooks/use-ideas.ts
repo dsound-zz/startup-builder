@@ -36,12 +36,18 @@ export function useIdeas(projectId?: string) {
     mutationFn: async (data: { project_id: string; context: string }) => {
       const supabase = createClient()
       
-      const { data: ideasData, error } = await supabase.functions.invoke('generate-ideas', {
-        body: { project_id: data.project_id, context: data.context }
+      const response = await fetch('/api/generate-ideas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project_id: data.project_id, context: data.context })
       })
       
-      if (error) {
-        throw new Error(`Failed to generate ideas: ${error.message}`)
+      let ideasData, error = null;
+      if (!response.ok) {
+        throw new Error(`Failed to generate ideas: ${response.statusText}`)
+      } else {
+        const resJson = await response.json();
+        ideasData = resJson.data !== undefined ? resJson.data : resJson;
       }
       
       // Transform AI-generated ideas to database schema and insert them
@@ -92,9 +98,21 @@ export function useIdeas(projectId?: string) {
       }
       
       // Call the validate-idea Edge Function
-      const { data: validationData, error: validationError } = await supabase.functions.invoke('validate-idea', {
-        body: { idea_id: ideaId, idea_data: idea }
-      })
+      const response = await fetch('/api/validate-idea', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idea_id: ideaId, idea_data: idea })
+      });
+      
+      let validationData, validationError = null;
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        validationError = new Error(`Failed to call validate-idea: ${errData.error || response.statusText}`);
+      } else {
+        const resJson = await response.json();
+        // Some endpoints return { data: ... }, others return { ... } directly
+        validationData = resJson.data !== undefined ? resJson.data : resJson;
+      }
       
       if (validationError) {
         throw new Error(`Failed to validate idea: ${validationError.message}`)
