@@ -25,6 +25,7 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   // Protected routes - redirect to signin if not authenticated
+  /*
   if (
     !user &&
     !request.nextUrl.pathname.startsWith('/signin') &&
@@ -46,6 +47,7 @@ export async function updateSession(request: NextRequest) {
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)
   }
+  */
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
   // creating a new response object with NextResponse.next() make sure to:

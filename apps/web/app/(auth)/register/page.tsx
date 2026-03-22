@@ -42,7 +42,7 @@ export default function RegisterPage() {
    }
 
    const handleOAuthSignUp = async (provider: 'google' | 'github') => {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
          provider,
          options: {
             redirectTo: `${window.location.origin}/auth/callback`,
@@ -50,7 +50,11 @@ export default function RegisterPage() {
       })
 
       if (error) {
+         console.error('OAuth Error:', error)
          setMessage(error.message)
+      } else if (data?.url) {
+         // Fallback in case the adapter doesn't automatically redirect
+         window.location.href = data.url
       }
    }
 
@@ -119,10 +123,10 @@ export default function RegisterPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-               <Button variant="outline" onClick={() => handleOAuthSignUp('google')}>
+               <Button type="button" variant="outline" onClick={() => handleOAuthSignUp('google')}>
                   Google
                </Button>
-               <Button variant="outline" onClick={() => handleOAuthSignUp('github')}>
+               <Button type="button" variant="outline" onClick={() => handleOAuthSignUp('github')}>
                   GitHub
                </Button>
             </div>
